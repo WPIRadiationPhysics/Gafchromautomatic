@@ -320,7 +320,7 @@ set(handles.slider_tol, 'Max', 10);
 set(handles.slider_tol, 'value', 0.1);
 
 % Angular slider step (1 to 360 in steps of 1)
-sliderStep = [1.0 1.0]/(360.0 - 0.0);
+sliderStep = [1.0 1.0]/(360.0 - 1.0);
 set(handles.slider_angle, 'SliderStep', sliderStep);
 set(handles.slider_angle, 'Min', 1);
 set(handles.slider_angle, 'Max', 360);
@@ -662,7 +662,8 @@ end
 
 % Draw line from vertex to radial edge
 thetacrit = theta_c;
-set(handles.edit_angle,'String', thetacrit);
+set(handles.edit_angle, 'String', thetacrit);
+set(handles.slider_angle, 'Value', thetacrit);
 radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(theta_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(theta_c)]);
 set(radialLine, 'Parent', handles.axes_image);
 

@@ -29,9 +29,9 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 7. Save absolute/averaged angular data to files with *File->Save outputs*
 
 ## Wishlist (priority)
-- Manage non-RGB TIFF images or non-TIFF images altogether (low)
-- Average multiple trials of film scans prior to analysis of combined (low)
-- Fix incorrect displays of critical angle editbox, slider values, and drawing (med)
-- Fix incorrect display of radial grayscale function plot (med)
-- Use native dialog box for file saving instead of instant local file creation (med)
-- Save radial grayscale function data to file (med)
+- [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1) (low)
+- [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2) (low)
+- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3) (high)
+- [Invalid radial grayscale function plot](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/4) (high)
+- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5) (low)
+- [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6) (medium)

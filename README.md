@@ -4,6 +4,8 @@ Scan, explore, and analyze RGB channels of irradiated Gafchromic film with MATLA
 ## Synopsis
 Gafchromautomatic is an in-house film analyzer for the purpose of characterizing isotropic and anisotropic radiation sources. The characterization is performed by relating the film scan grayscale contrast to irradiation dose using basic physics principles of optics and radiation-matter interactions.
 
+![Screenshot of Gafchromautomatic in action](Screenshot_Gafchromautomatic.png)
+
 This program accelerates the characterization process by automatically scanning the film to find the "peak darkness" with an N-by-N seek matrix. The utility of the seek matrix is the increased likelihood of finding the true irradiation vertex by averaging accross the matrix dimensions, washing out potential spikes in the data. For added convenience, an angular and radial grayscale function is plotted for user defined radius (and tolerance) with the option to save these data to text-based CSV-like files.
 
 This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiationPhysics/GFRGB).

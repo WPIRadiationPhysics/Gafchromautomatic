@@ -28,10 +28,16 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 6. Override critical angle with slider
 7. Save absolute/averaged angular data to files with *File->Save outputs*
 
-## Wishlist (priority)
-- [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1) (low)
-- [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2) (low)
-- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3) (high)
-- [Invalid radial grayscale function plot](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/4) (high)
-- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5) (low)
-- [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6) (medium)
+## Issues
+
+### High priority
+- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3)
+- [Invalid radial grayscale function plot](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/4)
+
+### Medium priority
+- [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6)
+
+### Low priority
+- [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1)
+- [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2)
+- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5)

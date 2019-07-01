@@ -558,8 +558,20 @@ recalculate_window(hObject, handles);
 %% AUXILLIARY
 % --- Reanalyzes image at new parameters.
 function recalculate_window(hObject, handles)
-global Film_Area dpi;
+global Film_Area dpi vertex;
 %hdlg = msgbox('Recalculating optical densities, please wait...');
+rgb = 'Red'; %get(handles.edit_RGB, 'String');
+if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+
+% Update vertex grayscale label with encompassing NxN avg
+vertex(3, rgb_i) = Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i);
+CourseAreaSide = str2num(get(handles.edit_scanBox, 'String'));
+% j is top of CourseArea, j+(CourseAreaSide-1) is bottom of CourseArea
+j = vertex(1, rgb_i) - floor(CourseAreaSide/2);
+% i is left side of CourseArea, i+(CourseAreaSide-1) is right side of CourseArea
+i = vertex(2, rgb_i) - floor(CourseAreaSide/2);
+CourseAreaValue = sum(sum(Film_Area(j:(j+(CourseAreaSide-1)), i:(i+(CourseAreaSide-1)), rgb_i)))/(CourseAreaSide^2);
+set(handles.text_vertexValue, 'String', CourseAreaValue);
 
 % Acquire state variables
 slider_r_max = get(handles.slider_radius, 'Max');
@@ -760,6 +772,3 @@ plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
 %axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:,1))) max(max(I_crit(:,1)))]);
 xlabel(handles.axes_radialOD, 'Radius [mm]')
 ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')
-
-% Update vertex grayscale label
-set(handles.text_vertexValue, 'String', Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i));

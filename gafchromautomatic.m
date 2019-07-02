@@ -45,6 +45,7 @@ end
 % End initialization code - DO NOT EDIT
 
 
+
 % --- Executes just before gafchromautomatic is made visible.
 function gafchromautomatic_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for gafchromautomatic
@@ -52,6 +53,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+
 
 
 % --- Outputs from this function are returned to the command line.
@@ -65,8 +67,10 @@ function varargout = gafchromautomatic_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
+
 % --------------------------------------------------------------------
 function menu_file_Callback(hObject, eventdata, handles)
+
 
 
 function menu_file_opentiff_Callback(hObject, eventdata, handles)
@@ -107,6 +111,7 @@ end
 guidata(hObject, handles);
 
 
+
 % --------------------------------------------------------------------
 function menu_file_save_Callback(hObject, eventdata, handles)
 % Acquire vars
@@ -130,6 +135,8 @@ for i_theta=1:I_numpoints
 end
 fclose(fileODout);
 
+
+
 % --- Executes on button press in button_reset.
 function button_reset_Callback(hObject, eventdata, handles)
 % Acquire gloabal variables
@@ -146,6 +153,7 @@ if ~isempty(Film_FileName)
     end
 end
 guidata(hObject, handles);
+
 
 
 % --- Executes on button press in button_zoom.
@@ -188,22 +196,21 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+
 function edit_dpi_Callback(hObject, eventdata, handles)
+
+
 
 % --- Executes during object creation, after setting all properties.
 function edit_scanBox_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_scanBox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
 
+
 function edit_scanBox_Callback(hObject, eventdata, handles)
+
 
 
 % --- Executes on button press in button_guess.
@@ -244,9 +251,10 @@ if ~isempty(Film_FileName)
     %}
     % Gather/declare vars
     dpi = str2double(get(handles.edit_dpi, 'String'));
-    CourseAreaSide = str2num(get(handles.edit_scanBox, 'String'));
-    MxRows = length(Film_Area(:,1,1))-(CourseAreaSide-1);
-    MxCols = length(Film_Area(1,:,1))-(CourseAreaSide-1);
+    CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
+    CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
+    MxRows = length(Film_Area(:,1,1))-(CoarseAreaSide-1);
+    MxCols = length(Film_Area(1,:,1))-(CoarseAreaSide-1);
     Mx = zeros(MxRows, MxCols, 3);
     vertex_area = zeros(3, 3);
     vertex = zeros(3, 3);
@@ -257,12 +265,12 @@ if ~isempty(Film_FileName)
         % Construct the values of the new matrix by analyzing each area
         for j = 1:MxRows
           for i = 1:MxCols
-            Mx(j, i, channelNum) = sum(sum(Film_Area(j:(j+(CourseAreaSide-1)), ...
-           i:(i+(CourseAreaSide-1)), channelNum)))/(CourseAreaSide^2);
+            Mx(j, i, channelNum) = sum(sum(Film_Area(j:(j+(CoarseAreaSide-1)), ...
+           i:(i+(CoarseAreaSide-1)), channelNum)))/(CoarseAreaSide^2);
           end
         end
 
-      % Course-grain peak location
+      % Coarse-grain peak location
       vertex_area(3, channelNum) = min(min(Mx(:, :, channelNum)));
       for j = 1:MxRows
         for i = 1:MxCols
@@ -276,11 +284,11 @@ if ~isempty(Film_FileName)
   
       % Global peak location at peak of side x side vertex_area
       vertex(3,channelNum) = min(min(Film_Area(vertex_area(1, ...
-          channelNum):vertex_area(1, channelNum)+CourseAreaSide-1, ...
-          vertex_area(2, channelNum):vertex_area(2, channelNum)+CourseAreaSide-1, ...
+          channelNum):vertex_area(1, channelNum)+CoarseAreaSide-1, ...
+          vertex_area(2, channelNum):vertex_area(2, channelNum)+CoarseAreaSide-1, ...
           channelNum)));
-      for j = 1:CourseAreaSide
-        for i = 1:CourseAreaSide
+      for j = 1:CoarseAreaSide
+        for i = 1:CoarseAreaSide
           if (Film_Area(vertex_area(1,channelNum)+j-1, vertex_area(2,channelNum)+i-1, channelNum) == vertex(3,channelNum))
             vertex(1,channelNum) = j + vertex_area(1,channelNum) - 1;
             vertex(2,channelNum) = i + vertex_area(2,channelNum) - 1;
@@ -333,12 +341,16 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during x slider creation, after setting all properties.
 function slider_vertexX_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+
 % --- Executes on x slider movement.
 function slider_vertexX_Callback(hObject, eventdata, handles)
 % Acquire vars
@@ -348,7 +360,7 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 
 % Get value from slider and change vertex
 [Film_yMax Film_xMax] = size(Film_Area(:, :, 1));
-sliderX = get(hObject,'Value');
+sliderX = round(get(hObject,'Value'));
 if ( sliderX <= Film_xMax && sliderX >= 0 ); vertex(2, rgb_i) = sliderX; end
 set(handles.edit_vertexX,'String', vertex(2, rgb_i));
 
@@ -361,6 +373,7 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during x vertex edit creation, after setting all properties.
 function edit_vertexX_CreateFcn(hObject, eventdata, handles)
 % Hint: edit controls usually have a white background on Windows.
@@ -368,9 +381,13 @@ function edit_vertexX_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
 function edit_vertexX_Callback(hObject, eventdata, handles)
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
+
 
 
 % --- Executes during y slider creation, after setting all properties.
@@ -379,6 +396,9 @@ function slider_vertexY_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+
 % --- Executes on y slider movement.
 function slider_vertexY_Callback(hObject, eventdata, handles)
 % Acquire vars
@@ -388,9 +408,9 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 
 % Get value from slider and change vertex
 [Film_yMax Film_xMax] = size(Film_Area(:, :, 1));
-sliderY = get(hObject,'Value');
+sliderY = round(get(hObject,'Value'));
 if ( sliderY <= Film_yMax && sliderY >= 0 ); vertex(1, rgb_i) = Film_yMax - sliderY; end
-set(handles.edit_vertexY,'String', Film_yMax - sliderY);
+set(handles.edit_vertexY, 'String', Film_yMax - sliderY);
 
 % Display R/G/B channel of selected area
 imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
@@ -401,6 +421,7 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during y vertex edit creation, after setting all properties.
 function edit_vertexY_CreateFcn(hObject, eventdata, handles)
 % Hint: edit controls usually have a white background on Windows.
@@ -408,9 +429,13 @@ function edit_vertexY_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
 function edit_vertexY_Callback(hObject, eventdata, handles)
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -419,6 +444,9 @@ function slider_radius_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+
 % --- Executes on slider movement.
 function slider_radius_Callback(hObject, eventdata, handles)
 % Acquire vars
@@ -437,6 +465,7 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during radius edit creation, after setting all properties.
 function edit_radius_CreateFcn(hObject, eventdata, handles)
 % Hint: edit controls usually have a white background on Windows.
@@ -444,6 +473,9 @@ function edit_radius_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
 function edit_radius_Callback(hObject, eventdata, handles)
 r = str2double(get(hObject,'String'));
 if ( r >= 0 && r <= get(handles.slider_radius,'Max') )
@@ -457,12 +489,16 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during tolerance slider creation, after setting all properties.
 function slider_tol_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+
 % --- Executes on tolerance slider movement.
 function slider_tol_Callback(hObject, eventdata, handles)
 % Acquire vars
@@ -481,6 +517,7 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during tolerance edit creation, after setting all properties.
 function edit_tol_CreateFcn(hObject, eventdata, handles)
 % Hint: edit controls usually have a white background on Windows.
@@ -491,6 +528,8 @@ end
 function edit_tol_Callback(hObject, eventdata, handles)
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
+
+
 
 function edit_angle_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
@@ -506,12 +545,16 @@ end
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
+
+
 % --- Executes during object creation, after setting all properties.
 function edit_angle_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
 
 % --- Executes on angular slider movement.
 function slider_angle_Callback(hObject, eventdata, handles)
@@ -531,12 +574,14 @@ recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
 
+
 % --- Executes during angular object creation, after setting all properties.
 function slider_angle_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -550,9 +595,13 @@ end
 function popupmenu_RGB_Callback(hObject, eventdata, handles)
 
 
+
 % --- Executes on button press in button_recalculate.
 function button_recalculate_Callback(hObject, eventdata, handles)
 recalculate_window(hObject, handles);
+
+
+
 
 
 %% AUXILLIARY
@@ -565,13 +614,20 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 
 % Update vertex grayscale label with encompassing NxN avg
 vertex(3, rgb_i) = Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i);
-CourseAreaSide = str2num(get(handles.edit_scanBox, 'String'));
-% j is top of CourseArea, j+(CourseAreaSide-1) is bottom of CourseArea
-j = vertex(1, rgb_i) - floor(CourseAreaSide/2);
-% i is left side of CourseArea, i+(CourseAreaSide-1) is right side of CourseArea
-i = vertex(2, rgb_i) - floor(CourseAreaSide/2);
-CourseAreaValue = sum(sum(Film_Area(j:(j+(CourseAreaSide-1)), i:(i+(CourseAreaSide-1)), rgb_i)))/(CourseAreaSide^2);
-set(handles.text_vertexValue, 'String', CourseAreaValue);
+CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
+CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
+% j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
+j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
+% i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
+i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
+% Alert user about out-of-bounds averaging
+try
+    CoarseAreaValue = sum(sum(Film_Area(j:(j+(CoarseAreaSide-1)), i:(i+(CoarseAreaSide-1)), rgb_i)))/(CoarseAreaSide^2);
+catch
+    CoarseAreaValue = "undefined";
+    disp('Scan box at least partially out of bounds, cannot determine value.');
+end
+set(handles.text_vertexValue, 'String', CoarseAreaValue);
 
 % Acquire state variables
 slider_r_max = get(handles.slider_radius, 'Max');
@@ -605,6 +661,8 @@ hold off;
 plot_OD(hObject, handles);
 guidata(hObject, handles);
 %close(hdlg);
+
+
 
 % Draw 3 circles: of selected radius, and +/- tolerance
 function circleDraw(hObject, handles)
@@ -660,12 +718,25 @@ for theta_deg=1:360
     end
 end
 
-% Draw line from vertex to radial edge
+% Draw line from vertex to radial edge if within Film_Area dimensions
 thetacrit = theta_c;
 set(handles.edit_angle, 'String', thetacrit);
 set(handles.slider_angle, 'Value', thetacrit);
 radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(theta_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(theta_c)]);
-set(radialLine, 'Parent', handles.axes_image);
+try set(radialLine, 'Parent', handles.axes_image); end
+
+% Draw scan NxN box
+CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
+CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
+% j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
+j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
+% i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
+i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
+% Try to draw lines if within Film_Area dimensions
+boxLine = line([i i], [j j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
+boxLine = line([i i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
+boxLine = line([i+(CoarseAreaSide-1) i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j]); try set(boxLine, 'Parent', handles.axes_image); end
+boxLine = line([i+(CoarseAreaSide-1) i], [j j]); try set(boxLine, 'Parent', handles.axes_image); end
 
 
 function plot_OD(hObject, handles)

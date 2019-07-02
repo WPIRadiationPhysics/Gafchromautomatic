@@ -21,7 +21,7 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 3. Scan the image to find the vertex of lowest grayscale:
     1. Zoom into a sub-area of the image with *Zoom* and *Reset*
     2. Set image dots-per-inch parameter with *dpi*
-    3. Choose courseness of averaging matrix scanning with *scan NxN*
+    3. Set length averaging scanning matrix scanning with *scan NxN*
     4. Initialize analysis with *Guess vertex*
 4. Override analysis parameters including vertex, location with horizontal and vertical sliders
 5. Select analyzing radius and averaging tolerance with respective sliders

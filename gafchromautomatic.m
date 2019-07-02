@@ -81,8 +81,9 @@ global Film_Img Film_Area Film_Area_Prev Film_FileName rect;
 [Film_FileName, Film_FilePath, Img_Index] = uigetfile('*.tif', ...
     'Choose image file', 'MultiSelect', 'off');
 
+
 % If successful selection
-if ~isempty(Film_FileName)
+if ~isequal(Film_FileName,0)
     Film_FileName = strcat(Film_FilePath, Film_FileName);
 
     % Check filenames for tiff-type extension
@@ -249,6 +250,37 @@ if ~isempty(Film_FileName)
     
                      ( vertex(1, rgb_i), vertex(2, rgb_i) )
     %}
+    % GAUSSIAN FILTER
+    % Gather/declare vars
+    dpi = str2double(get(handles.edit_dpi, 'String'));
+    vertex = zeros(3, 3);
+    rgb = 'Red'; %get(handles.text_rgb, 'String');
+    if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+    
+    % Define gaussian blur kernel
+    kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String')); % mm
+    kernelRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
+    kernelSigma = 0.15*kernelRadius + 0.35; % based on openCV.gaussianBlur
+    
+    % Apply gaussian blur to ROI, find global minimum of output
+    filtered_Film_Area = imgaussfilt(Film_Area, kernelSigma);
+    vertex(3, rgb_i) = min(min(filtered_Film_Area(:, :, rgb_i)));
+    %[vertex(1, rgb_i), vertex(2, rgb_i)] = find(filtered_Film_Area(:, :, rgb_i) == min(filtered_Film_Area(:, :, rgb_i)), 1);
+    
+    % Match global minimum to called coordinate of blurred ROI
+    Film_Area_Rows = length(Film_Area(:,1,1));
+    Film_Area_Cols = length(Film_Area(1,:,1));
+    for j = 1:Film_Area_Rows
+      for i = 1:Film_Area_Cols
+        if (filtered_Film_Area(j, i, rgb_i) == vertex(3, rgb_i))
+          vertex(1, rgb_i) = j; vertex(2, rgb_i) = i;
+        end
+      end
+    end
+    
+    %{
+    MEAN FILTER BY HAND
+    
     % Gather/declare vars
     dpi = str2double(get(handles.edit_dpi, 'String'));
     CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
@@ -258,7 +290,6 @@ if ~isempty(Film_FileName)
     Mx = zeros(MxRows, MxCols, 3);
     vertex_area = zeros(3, 3);
     vertex = zeros(3, 3);
-
     % Main Loop
     hold on
     for channelNum=1:3
@@ -269,7 +300,6 @@ if ~isempty(Film_FileName)
            i:(i+(CoarseAreaSide-1)), channelNum)))/(CoarseAreaSide^2);
           end
         end
-
       % Coarse-grain peak location
       vertex_area(3, channelNum) = min(min(Mx(:, :, channelNum)));
       for j = 1:MxRows
@@ -281,7 +311,6 @@ if ~isempty(Film_FileName)
           end
         end
       end
-  
       % Global peak location at peak of side x side vertex_area
       vertex(3,channelNum) = min(min(Film_Area(vertex_area(1, ...
           channelNum):vertex_area(1, channelNum)+CoarseAreaSide-1, ...
@@ -296,6 +325,8 @@ if ~isempty(Film_FileName)
         end
       end
     end
+    %}
+    
 end
 
 % % Vertex xy adjust slider step (0 to Film_xyMax in steps of 1)
@@ -612,22 +643,39 @@ global Film_Area dpi vertex;
 rgb = 'Red'; %get(handles.edit_RGB, 'String');
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 
-% Update vertex grayscale label with encompassing NxN avg
+% Update vertex grayscale label with encompassing circular avg of available cells
 vertex(3, rgb_i) = Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i);
-CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
-CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
-% j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
-j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
-% i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
-i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
-% Alert user about out-of-bounds averaging
-try
-    CoarseAreaValue = sum(sum(Film_Area(j:(j+(CoarseAreaSide-1)), i:(i+(CoarseAreaSide-1)), rgb_i)))/(CoarseAreaSide^2);
-catch
-    CoarseAreaValue = "undefined";
-    disp('Scan box at least partially out of bounds, cannot determine value.');
+kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String'));
+avgRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
+%avgRadius = 1;
+avgArea = 0; avgAreaValue = 0;
+Film_Area_Rows = length(Film_Area(:, 1,rgb_i));
+Film_Area_Cols = length(Film_Area(1, :,rgb_i));
+for j = 1:Film_Area_Rows
+  for i = 1:Film_Area_Cols
+    if ( ( j >= 1 && j <= Film_Area_Rows ) && ( i >= 1 && i <= Film_Area_Cols ) )
+      if ( (j - vertex(1, rgb_i))^2 + (i - vertex(2, rgb_i))^2 <= avgRadius^2 )
+        avgArea = avgArea + 1; % following double() necessary to preserve precision
+        avgAreaValue = avgAreaValue + double(Film_Area(j, i, rgb_i));
+      end
+    end
+  end
 end
-set(handles.text_vertexValue, 'String', CoarseAreaValue);
+avgValue = avgAreaValue/avgArea;
+%CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
+%CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
+% %j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
+%j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
+% %i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
+%i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
+% %Alert user about out-of-bounds averaging
+%try
+%    CoarseAreaValue = sum(sum(Film_Area(j:(j+(CoarseAreaSide-1)), i:(i+(CoarseAreaSide-1)), rgb_i)))/(CoarseAreaSide^2);
+%catch
+%    CoarseAreaValue = "undefined";
+%    disp('Scan box at least partially out of bounds, cannot determine value.');
+%end
+set(handles.text_vertexValue, 'String', avgValue);
 
 % Acquire state variables
 slider_r_max = get(handles.slider_radius, 'Max');
@@ -725,18 +773,21 @@ set(handles.slider_angle, 'Value', thetacrit);
 radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(theta_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(theta_c)]);
 try set(radialLine, 'Parent', handles.axes_image); end
 
-% Draw scan NxN box
-CoarseAreaLength = str2double(get(handles.edit_scanBox, 'String'));
-CoarseAreaSide = round(CoarseAreaLength*dpi/25.4); % Convert to dots, rounded
-% j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
-j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
-% i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
-i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
-% Try to draw lines if within Film_Area dimensions
-boxLine = line([i i], [j j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
-boxLine = line([i i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
-boxLine = line([i+(CoarseAreaSide-1) i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j]); try set(boxLine, 'Parent', handles.axes_image); end
-boxLine = line([i+(CoarseAreaSide-1) i], [j j]); try set(boxLine, 'Parent', handles.axes_image); end
+% Draw averaging circle
+%kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String'));
+%kernelRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
+avgRadius = 1;
+% %j is top of CoarseArea, j+(CoarseAreaSide-1) is bottom of CoarseArea
+%j = vertex(1, rgb_i) - floor(CoarseAreaSide/2);
+% %i is left side of CoarseArea, i+(CoarseAreaSide-1) is right side of CoarseArea
+%i = vertex(2, rgb_i) - floor(CoarseAreaSide/2);
+% %Try to draw lines if within Film_Area dimensions
+%boxLine = line([i i], [j j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
+%boxLine = line([i i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j+(CoarseAreaSide-1)]); try set(boxLine, 'Parent', handles.axes_image); end
+%boxLine = line([i+(CoarseAreaSide-1) i+(CoarseAreaSide-1)], [j+(CoarseAreaSide-1) j]); try set(boxLine, 'Parent', handles.axes_image); end
+%boxLine = line([i+(CoarseAreaSide-1) i], [j j]); try set(boxLine, 'Parent', handles.axes_image); end
+rectangle('Position', [vertex(2,1)-avgRadius vertex(1,1)-avgRadius 2*avgRadius 2*avgRadius], ...
+          'Curvature', [1 1], 'EdgeColor', 'r', 'Parent', handles.axes_image)
 
 
 function plot_OD(hObject, handles)
@@ -768,8 +819,8 @@ for i_theta=1:I_numpoints
             r_pxi = (r - rTol + rStep_i*rInc)*dpi/25.4;
             
             % Find closest pixel, assume value
-            if (floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) > 0 && floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) < length(Film_Area(:,1,1)))
-                if (floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) > 0 && floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) < length(Film_Area(1,:,1)))
+            if (floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) <= length(Film_Area(:,1,1)))
+                if (floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) <= length(Film_Area(1,:,1)))
                     I_y = floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad));
                     I_x = floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad));
                     I_avg(i_theta) = double(I_avg(i_theta) + Film_Area(I_y, I_x, rgb_i)/(rSteps+1));
@@ -785,8 +836,8 @@ for i_theta=1:I_numpoints
     end
     r_px = r*dpi/25.4; % get r in px
     try
-        if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) > 0 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) < length(Film_Area(:,1,1)))
-            if (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) > 0 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) < length(Film_Area(1,:,1)))
+        if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) <= length(Film_Area(:,1,1)))
+            if (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) <= length(Film_Area(1,:,1)))
                 I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad));
                 I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad));
                 I_r(i_theta) = Film_Area(I_y, I_x, rgb_i);
@@ -805,7 +856,7 @@ plot(min(theta):max(theta), I_r, 'b-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'on');
 plot(min(theta):max(theta), I_avg, 'r-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'off');
-axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:,1),I_avg(:,1))) max(max(I_r(:,1),I_avg(:,1)))]);
+axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:),I_avg(:))) max(max(I_r(:),I_avg(:)))]);
 xlabel(handles.axes_angularOD, 'Angle [deg]')
 ylabel(handles.axes_angularOD, 'Grayscale [of 2^1^6]')
 
@@ -841,6 +892,6 @@ for i_r=1:I_rnumpoints
 end
 % Plot I_crit(arr) along r=radius (blue)
 plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
-%axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:,1))) max(max(I_crit(:,1)))]);
+axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:,1))) max(max(I_crit(:,1)))]);
 xlabel(handles.axes_radialOD, 'Radius [mm]')
 ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')

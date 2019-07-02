@@ -23,7 +23,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 25-Jun-2019 22:04:34
+% Last Modified by GUIDE v2.5 02-Jul-2019 19:12:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -199,7 +199,8 @@ end
 
 
 function edit_dpi_Callback(hObject, eventdata, handles)
-
+global dpi
+dpi = str2double(get(handles.edit_dpi, 'String'));
 
 
 % --- Executes during object creation, after setting all properties.
@@ -895,3 +896,33 @@ plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
 axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:,1))) max(max(I_crit(:,1)))]);
 xlabel(handles.axes_radialOD, 'Radius [mm]')
 ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')
+
+
+
+function menu_preview_Callback(hObject, eventdata, handles)
+
+
+
+function menu_preview_original_Callback(hObject, eventdata, handles)
+global Film_Area
+rgb = 'Red'; %get(handles.edit_RGB, 'String');
+if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+figure;
+surf(Film_Area(:,:,rgb_i));
+
+
+function menu_preview_blurred_Callback(hObject, eventdata, handles)
+global Film_Area dpi
+dpi = str2double(get(handles.edit_dpi, 'String'));
+rgb = 'Red'; %get(handles.edit_RGB, 'String');
+if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+
+% Define gaussian blur kernel
+kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String')); % mm
+kernelRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
+kernelSigma = 0.15*kernelRadius + 0.35; % based on openCV.gaussianBlur
+
+% Apply gaussian blur to ROI, find global minimum of output
+filtered_Film_Area = imgaussfilt(Film_Area, kernelSigma);
+figure;
+surf(filtered_Film_Area(:,:,rgb_i));

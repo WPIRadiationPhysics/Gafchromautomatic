@@ -801,11 +801,11 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 dtheta = 1;
 
 % Angular range: circle for source...
-theta=0:dtheta:360;
+theta=1:dtheta:360;
 
 % Create data point for each angle
-I_numpoints = max(theta) - min(theta) + 1; % angular iterations including the zeroth
-I_avg = zeros(I_numpoints); I_r = zeros(I_numpoints);
+I_numpoints = max(theta) - min(theta) + 1; % angular iterations
+I_avg = zeros(I_numpoints, 1); I_r = zeros(I_numpoints, 1);
 
 % 0.01 mm increments from r +/- rTol
 rInc = 1e-2; rSteps = 2*rTol/rInc;
@@ -815,40 +815,26 @@ for i_theta=1:I_numpoints
     % Get angle in radians
     theta_rad = theta(i_theta)*pi/180;
     for rStep_i = 0:rSteps
-        try
-            % Get r_i in px
-            r_pxi = (r - rTol + rStep_i*rInc)*dpi/25.4;
-            
-            % Find closest pixel, assume value
-            if (floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) <= length(Film_Area(:,1,1)))
-                if (floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) <= length(Film_Area(1,:,1)))
-                    I_y = floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad));
-                    I_x = floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad));
-                    I_avg(i_theta) = double(I_avg(i_theta) + Film_Area(I_y, I_x, rgb_i)/(rSteps+1));
-                else
-                    I_avg(i_theta) = 0;
-                end
-            else
-                I_avg(i_theta) = 0;
-            end
-        catch
+        % Get r_i in px
+        r_pxi = (r - rTol + rStep_i*rInc)*dpi/25.4;
+
+        % Find closest pixel, assume value
+        if (floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) <= length(Film_Area(1,:,1))) ...
+            && (floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) <= length(Film_Area(:,1,1)))
+                I_y = floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad));
+                I_x = floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad));
+                I_avg(i_theta) = double(I_avg(i_theta) + Film_Area(I_y, I_x, rgb_i)/(rSteps+1));
+        else
             I_avg(i_theta) = 0;
         end
     end
     r_px = r*dpi/25.4; % get r in px
-    try
-        if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) <= length(Film_Area(:,1,1)))
-            if (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) <= length(Film_Area(1,:,1)))
-                I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad));
-                I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad));
-                I_r(i_theta) = Film_Area(I_y, I_x, rgb_i);
-            else
-                I_r(i_theta) = 0;
-            end
-        else
-            I_r(i_theta) = 0;
-        end
-    catch
+    if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) <= length(Film_Area(1,:,1))) ...
+        && (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) <= length(Film_Area(:,1,1)))
+            I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad))
+            I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad))
+            I_r(i_theta) = Film_Area(I_y, I_x, rgb_i);
+    else
         I_r(i_theta) = 0;
     end
 end
@@ -857,7 +843,9 @@ plot(min(theta):max(theta), I_r, 'b-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'on');
 plot(min(theta):max(theta), I_avg, 'r-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'off');
-axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:),I_avg(:))) max(max(I_r(:),I_avg(:)))]);
+I_r
+axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:), I_avg(:))) max(max(I_r(:), I_avg(:)))]);
+%axis(handles.axes_angularOD, 'tight');
 xlabel(handles.axes_angularOD, 'Angle [deg]')
 ylabel(handles.axes_angularOD, 'Grayscale [of 2^1^6]')
 
@@ -867,7 +855,7 @@ dr=r/I_rnumpoints;
 arr=0:dr:r;
 
 % Create data point for each radius
-I_crit = zeros(I_rnumpoints);
+I_crit = zeros(I_rnumpoints, 1);
 
 % Loop through whole radius;
 for i_r=1:I_rnumpoints
@@ -875,25 +863,19 @@ for i_r=1:I_rnumpoints
     r_pxi = i_r*dr*dpi/25.4;
             
     % Find closest pixel, assume value
-    try
-        if (floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) > 0 && floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) < length(Film_Area(:,1,1)))
-            if (floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) > 0 && floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) < length(Film_Area(1,:,1)))
-                I_y = floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit));
-                I_x = floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit));
-                I_crit(i_r) = double(Film_Area(I_y, I_x, rgb_i));
-            else
-               I_crit(i_r) = 0;
-            end
-        else
-            I_crit(i_r) = 0;
-        end
-    catch
-        I_crit(i_r) = 0;
+    if ( floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) <= length(Film_Area(1,:,1)) ) ...
+        && ( floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) <= length(Film_Area(:,1,1)) )
+            I_y = floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit));
+            I_x = floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit));
+            I_crit(i_r) = double(Film_Area(I_y, I_x, rgb_i));
+    else
+       I_crit(i_r) = 0;
     end
 end
 % Plot I_crit(arr) along r=radius (blue)
 plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
-axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:,1))) max(max(I_crit(:,1)))]);
+axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:))) max(max(I_crit(:)))]);
+%axis(handles.axes_radialOD, 'tight');
 xlabel(handles.axes_radialOD, 'Radius [mm]')
 ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')
 

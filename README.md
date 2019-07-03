@@ -35,7 +35,6 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 
 ### Medium priority
 - [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6)
-- [Angular optical density plot Y limits break when vertex near image boundary](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/7)
 
 ### Low priority
 - [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1)

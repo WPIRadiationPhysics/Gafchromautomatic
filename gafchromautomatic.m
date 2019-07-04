@@ -347,22 +347,25 @@ blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
 rgb = 'Red';
 if ( strcmp(rgb, 'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 
+Film_Area_Rows = length(Film_Area(:,1,rgb_i));
+Film_Area_Cols = length(Film_Area(1,:,rgb_i));
 % Preview analysis matrix in new figure
 if ( strcmp(blurType, 'None') )
-    figure;
-    surf(Film_Area(:,:,rgb_i));
+    filtered_Film_Area = Film_Area;
+    figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
+    surf(1:Film_Area_Cols, flip(1:Film_Area_Rows), filtered_Film_Area(:,:,rgb_i));
 elseif ( strcmp(blurType, 'Gaussian') )
     % Define gaussian blur kernel, apply to ROI and preview
     blurSigma = 0.15*blurRadius + 0.35; % based on openCV.gaussianBlur
     filtered_Film_Area = imgaussfilt(Film_Area, blurSigma);
-    figure;
-    surf(filtered_Film_Area(:,:,rgb_i));
+    figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
+    surf(1:Film_Area_Cols, flip(1:Film_Area_Rows), filtered_Film_Area(:,:,rgb_i));
 elseif ( strcmp(blurType, 'Mean') )
     % Define mean blur kernel, apply to ROI and preview
     blurKernel = fspecial('average', [blurRadius blurRadius]);
     filtered_Film_Area = imfilter(Film_Area, blurKernel);
-    figure;
-    surf(filtered_Film_Area);
+    figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
+    surf(1:Film_Area_Cols, flip(1:Film_Area_Rows), filtered_Film_Area(:,:,rgb_i));
 end
 
 
@@ -612,6 +615,53 @@ guidata(hObject, handles);
 
 % --- Executes on button press in button_anisotropy.
 function button_anisotropy_Callback(hObject, eventdata, handles)
+% Acquire global and GUI variables
+global Film_Area dpi vertices;
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+blurList = get(handles.popupmenu_blurType, 'String');
+  blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
+blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
+if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+
+% Filter film ROI in x-direction only
+if ( strcmp(blurType, 'None') )
+    filtered_Film_Area = Film_Area;
+elseif ( strcmp(blurType, 'Gaussian') )
+    % Define gaussian blur kernel, apply to ROI and preview
+    blurSigma = 0.15*blurRadius + 0.35; % based on openCV.gaussianBlur
+    filtered_Film_Area = imgaussfilt(Film_Area, blurSigma);
+    %blurKernel = fspecial('gaussian', [blurRadius blurRadius]);
+    %filtered_Film_Area = imfilter(Film_Area, blurKernel);
+elseif ( strcmp(blurType, 'Mean') )
+    % Define mean blur kernel, apply to ROI and preview
+    blurKernel = fspecial('average', [1 blurRadius]);
+    filtered_Film_Area = imfilter(Film_Area, blurKernel);
+end
+
+% Scan for local minimum by row
+Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
+Film_Area_Cols = length(filtered_Film_Area(1, :, rgb_i));
+vertices = zeros(Film_Area_Rows, 2, 3); % y's by [x, value] by RGB
+for j=1:Film_Area_Rows
+    vertices(j, 2, rgb_i) = min(filtered_Film_Area(j, :, rgb_i)); % minimum "gaussed" value
+    %vertices(j, 2, rgb_i) = min(Film_Area(j, :, rgb_i)); % minimum exact value (todo: determine which is applicable)
+    for i=1:Film_Area_Cols
+        if ( vertices(j, 2, rgb_i) == filtered_Film_Area(j, i, rgb_i) )
+            vertices(j, 1, rgb_i) = i; % Corresponding x value
+        end
+    end
+end
+% Plot selected area with markers on vertices
+imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
+hold on;
+plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerSize', 2);
+hold off;
+figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
+surf(1:Film_Area_Cols, flip(1:Film_Area_Rows), filtered_Film_Area(:,:,rgb_i));
 
 
 
@@ -622,7 +672,9 @@ function button_anisotropy_Callback(hObject, eventdata, handles)
 function recalculate_window(hObject, handles)
 % Acquire global and GUI variables
 global Film_Area dpi vertex;
-rgb = 'Red'; %get(handles.edit_RGB, 'String');
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 slider_r_max = get(handles.slider_radius, 'Max');
 r = str2double(get(handles.edit_radius,'String'));
@@ -682,7 +734,9 @@ global vertex dpi Film_Area thetacrit;
 r = str2double(get(handles.edit_radius, 'String'));
 rTol = str2double(get(handles.edit_tol, 'String'));
 r_px = r*dpi/25.4; r_pxTol = rTol*dpi/25.4; % get r +- rTol in px
-rgb = 'Red'; %get(handles.edit_RGB, 'String');
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 
 % Create circles with... rectangle(), because MATLAB
@@ -749,7 +803,9 @@ function plot_OD(hObject, handles)
 global Film_Area vertex I_r I_avg dpi thetacrit;
 r = str2double(get(handles.edit_radius, 'String'));
 rTol = str2double(get(handles.edit_tol, 'String'));
-rgb = 'Red'; %get(handles.edit_RGB, 'String');
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 dtheta = 1;
 

@@ -22,7 +22,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 04-Jul-2019 08:20:38
+% Last Modified by GUIDE v2.5 04-Jul-2019 16:51:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -236,26 +236,70 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on "File->Save outputs" click in menu.
-function menu_file_save_Callback(hObject, eventdata, handles)
+% --- Executes on "File->Save isotropy outputs" click in menu.
+function menu_file_save_isotropy_Callback(hObject, eventdata, handles)
 % Acquire vars
 global I_r I_avg;
 dtheta = 1;
-theta=0:dtheta:360;
+theta=1:dtheta:360;
 
 % Create data point for each angle
 I_numpoints = max(theta) - min(theta) + 1; % angular iterations including the zeroth
 
 % Get date and time for filename
 dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-outputODfilename = strcat('OD_', dateandtime, '.txt');
+outputODfilename = strcat('iso_', dateandtime, '.txt');
 fileODout = fopen(outputODfilename, 'w');
 
 % Loop through whole angle for output and close file
+fprintf(fileODout, 'theta I(theta) I_avg(theta)\n');
 for i_theta=1:I_numpoints
     % Write theta [deg], I(r,theta) and I_avg(r,theta) [a.u.] to text file
     % for given r +- tol as "i_theta, I_r, I_avg"
     fprintf(fileODout, '%d %3d %3d\n', i_theta, I_r(i_theta), I_avg(i_theta));
+end
+fclose(fileODout);
+
+
+
+% --- Executes on "File->Save anisotropy outputs" click in menu.
+function menu_file_save_anisotropy_Callback(hObject, eventdata, handles)
+% Acquire vars
+global Film_Area vertices;
+sourceDistance = get(handles.edit_sourceDistance, 'String');
+blurList = get(handles.popupmenu_blurType, 'String');
+  blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
+blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
+if ( strcmp(rgb, 'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+
+% Filter film ROI
+if ( strcmp(blurType, 'None') )
+    filtered_Film_Area = Film_Area;
+elseif ( strcmp(blurType, 'Gaussian') )
+    % Define gaussian blur kernel, apply to ROI and preview
+    blurSigma = 0.15*blurRadius + 0.35; % based on openCV.gaussianBlur
+    filtered_Film_Area = imgaussfilt(Film_Area, blurSigma);
+    %blurKernel = fspecial('gaussian', [blurRadius blurRadius]);
+    %filtered_Film_Area = imfilter(Film_Area, blurKernel);
+elseif ( strcmp(blurType, 'Mean') )
+    % Define mean blur kernel, apply to ROI and preview
+    blurKernel = fspecial('average', [1 blurRadius]);
+    filtered_Film_Area = imfilter(Film_Area, blurKernel);
+end
+
+% Get date and time for filename
+dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+outputODfilename = strcat('aniso_', dateandtime, '.txt');
+fileODout = fopen(outputODfilename, 'w');
+
+% Loop through all rows (reversed) for output and close file
+Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
+fprintf(fileODout, 'R y(related to Theta) I\n');
+for y=1:Film_Area_Rows
+    fprintf(fileODout, '%d %3d %3d\n', sourceDistance, y, vertices(Film_Area_Rows-y+1, 2, rgb_i));
 end
 fclose(fileODout);
 
@@ -627,7 +671,7 @@ blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
 rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 
-% Filter film ROI in x-direction only
+% Filter film ROI
 if ( strcmp(blurType, 'None') )
     filtered_Film_Area = Film_Area;
 elseif ( strcmp(blurType, 'Gaussian') )
@@ -661,7 +705,7 @@ hold on;
 plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerSize', 2);
 hold off;
 figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
-surf(1:Film_Area_Cols, flip(1:Film_Area_Rows), filtered_Film_Area(:,:,rgb_i));
+plot(1:Film_Area_Rows, flip(vertices(:, 2, rgb_i)), '.', 'Markersize', 1);
 
 
 

@@ -12,7 +12,7 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 
 ## Features
 - Course-grain scan of region-of-interest to find vertex of lowest grayscale
-- Immediate anisotropic critical-angle-of-interest from defined vertex location
+- Immediate isotropic critical-angle-of-interest from defined vertex location
 - Graphical and text output of radial and absolute/averaged angular grayscale data
 
 ## Usage
@@ -29,14 +29,17 @@ This program is a remake of the now defunct [GFRGB](https://github.com/WPIRadiat
 7. Save absolute/averaged angular data to files with *File->Save outputs*
 
 ## Issues
+Priorities in order of appearance
 
-### High priority
-- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3)
-
-### Medium priority
-- [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6)
-
-### Low priority
+### General
+- [Snap zoom rectangle to image boundaries when outside](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/8)
+- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5)
 - [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1)
 - [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2)
-- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5)
+
+### Anisotropy analysis
+[Add anisotropy analysis function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/9)
+
+### Isotropy analysis
+- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3)
+- [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6)

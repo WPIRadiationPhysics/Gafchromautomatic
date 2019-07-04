@@ -23,7 +23,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 02-Jul-2019 19:12:53
+% Last Modified by GUIDE v2.5 03-Jul-2019 23:34:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,7 +83,7 @@ global Film_Img Film_Area Film_Area_Prev Film_FileName rect;
 
 
 % If successful selection
-if ~isequal(Film_FileName,0)
+if ~isequal(Film_FileName, 0)
     Film_FileName = strcat(Film_FilePath, Film_FileName);
 
     % Check filenames for tiff-type extension
@@ -831,8 +831,8 @@ for i_theta=1:I_numpoints
     r_px = r*dpi/25.4; % get r in px
     if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) <= length(Film_Area(1,:,1))) ...
         && (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) <= length(Film_Area(:,1,1)))
-            I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad))
-            I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad))
+            I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad));
+            I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad));
             I_r(i_theta) = Film_Area(I_y, I_x, rgb_i);
     else
         I_r(i_theta) = 0;
@@ -843,7 +843,6 @@ plot(min(theta):max(theta), I_r, 'b-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'on');
 plot(min(theta):max(theta), I_avg, 'r-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'off');
-I_r
 axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:), I_avg(:))) max(max(I_r(:), I_avg(:)))]);
 %axis(handles.axes_angularOD, 'tight');
 xlabel(handles.axes_angularOD, 'Angle [deg]')
@@ -908,3 +907,33 @@ kernelSigma = 0.15*kernelRadius + 0.35; % based on openCV.gaussianBlur
 filtered_Film_Area = imgaussfilt(Film_Area, kernelSigma);
 figure;
 surf(filtered_Film_Area(:,:,rgb_i));
+
+
+
+function edit_sourceDistance_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_sourceDistance (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_sourceDistance as text
+%        str2double(get(hObject,'String')) returns contents of edit_sourceDistance as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_sourceDistance_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_sourceDistance (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in button_anisotropy.
+function button_anisotropy_Callback(hObject, eventdata, handles)
+% hObject    handle to button_anisotropy (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

@@ -22,7 +22,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 03-Jul-2019 23:34:38
+% Last Modified by GUIDE v2.5 04-Jul-2019 08:20:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -82,7 +82,15 @@ end
 
 
 % --- Executes during object creation, after setting all properties.
-function edit_scanBox_CreateFcn(hObject, eventdata, handles)
+function popupmenu_blurType_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_blurRadius_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -253,40 +261,6 @@ fclose(fileODout);
 
 
 
-% --- Executes on "Preview 3D" click in menu.
-function menu_preview_Callback(hObject, eventdata, handles)
-
-
-
-% --- Executes on "Preview 3D->Original" click in menu.
-function menu_preview_original_Callback(hObject, eventdata, handles)
-global Film_Area
-rgb = 'Red'; %get(handles.edit_RGB, 'String');
-if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
-figure;
-surf(Film_Area(:,:,rgb_i));
-
-
-
-% --- Executes on "Preview 3D->Blurred" click in menu.
-function menu_preview_blurred_Callback(hObject, eventdata, handles)
-global Film_Area dpi
-dpi = str2double(get(handles.edit_dpi, 'String'));
-rgb = 'Red'; %get(handles.edit_RGB, 'String');
-if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
-
-% Define gaussian blur kernel
-kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String')); % mm
-kernelRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
-kernelSigma = 0.15*kernelRadius + 0.35; % based on openCV.gaussianBlur
-
-% Apply gaussian blur to ROI, find global minimum of output
-filtered_Film_Area = imgaussfilt(Film_Area, kernelSigma);
-figure;
-surf(filtered_Film_Area(:,:,rgb_i));
-
-
-
 function edit_dpi_Callback(hObject, eventdata, handles)
 global dpi
 dpi = str2double(get(handles.edit_dpi, 'String'));
@@ -294,6 +268,20 @@ dpi = str2double(get(handles.edit_dpi, 'String'));
 
 
 function edit_sourceDistance_Callback(hObject, eventdata, handles)
+
+
+
+% --- Executes on selection change in popupmenu_blurType.
+function popupmenu_blurType_Callback(hObject, eventdata, handles)
+
+
+
+function edit_blurRadius_Callback(hObject, eventdata, handles)
+
+
+
+% --- Executes on selection change in popupmenu_RGB.
+function popupmenu_RGB_Callback(hObject, eventdata, handles)
 
 
 
@@ -347,13 +335,35 @@ guidata(hObject, handles);
 
 
 
-function edit_scanBox_Callback(hObject, eventdata, handles)
+% --- Executes on button press in button_preview.
+function button_preview_Callback(hObject, eventdata, handles)
+global Film_Area dpi
+dpi = str2double(get(handles.edit_dpi, 'String'));
+blurList = get(handles.popupmenu_blurType, 'String');
+  blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
+blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
+if ( strcmp(rgb, 'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 
-
-
-% --- Executes on selection change in popupmenu_RGB.
-function popupmenu_RGB_Callback(hObject, eventdata, handles)
-
+% Preview analysis matrix in new figure
+if ( strcmp(blurType, 'None') )
+    figure;
+    surf(Film_Area(:,:,rgb_i));
+elseif ( strcmp(blurType, 'Gaussian') )
+    % Define gaussian blur kernel, apply to ROI and preview
+    blurSigma = 0.15*blurRadius + 0.35; % based on openCV.gaussianBlur
+    filtered_Film_Area = imgaussfilt(Film_Area, blurSigma);
+    figure;
+    surf(filtered_Film_Area(:,:,rgb_i));
+elseif ( strcmp(blurType, 'Mean') )
+    % Define mean blur kernel, apply to ROI and preview
+    blurKernel = fspecial('average', [blurRadius blurRadius]);
+    filtered_Film_Area = imfilter(Film_Area, blurKernel);
+    figure;
+    surf(filtered_Film_Area);
+end
 
 
 % --- Executes on button press in button_guess.
@@ -385,7 +395,7 @@ if ~isempty(Film_FileName)
     if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
     
     % Define gaussian blur kernel
-    kernelRadiusMM = str2double(get(handles.edit_scanBox, 'String')); % mm
+    kernelRadiusMM = str2double(get(handles.edit_blurRadius, 'String')); % mm
     kernelRadius = round(kernelRadiusMM*dpi/25.4); % Convert to dots, rounded
     kernelSigma = 0.15*kernelRadius + 0.35; % based on openCV.gaussianBlur
     
@@ -620,7 +630,7 @@ rTol = str2double(get(handles.edit_tol,'String'));
 
 % Update vertex grayscale label with encompassing circular avg of available cells
 vertex(3, rgb_i) = Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i);
-%kernelRadius = str2double(get(handles.edit_scanBox, 'String'));
+%kernelRadius = str2double(get(handles.edit_blurRadius, 'String'));
 avgRadius = 5;
 avgArea = 0; avgAreaValue = 0;
 Film_Area_Rows = length(Film_Area(:, 1,rgb_i));
@@ -727,7 +737,7 @@ radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(theta_c)], [vertex
 try set(radialLine, 'Parent', handles.axes_image); end
 
 % Draw averaging circle
-%kernelRadius = str2double(get(handles.edit_scanBox, 'String'));
+%kernelRadius = str2double(get(handles.edit_blurRadius, 'String'));
 avgRadius = 1;
 rectangle('Position', [vertex(2,1)-avgRadius vertex(1,1)-avgRadius 2*avgRadius 2*avgRadius], ...
           'Curvature', [1 1], 'EdgeColor', 'r', 'Parent', handles.axes_image);

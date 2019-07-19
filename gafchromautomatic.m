@@ -240,11 +240,11 @@ guidata(hObject, handles);
 function menu_file_save_isotropy_Callback(hObject, eventdata, handles)
 % Acquire vars
 global I_r I_avg;
-dtheta = 1;
-theta=1:dtheta:360;
+dphi = 1;
+phi=1:dphi:360;
 
 % Create data point for each angle
-I_numpoints = max(theta) - min(theta) + 1; % angular iterations including the zeroth
+I_numpoints = max(phi) - min(phi) + 1; % angular iterations including the zeroth
 
 % Get date and time for filename
 dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
@@ -252,11 +252,11 @@ outputODfilename = strcat('iso_', dateandtime, '.txt');
 fileODout = fopen(outputODfilename, 'w');
 
 % Loop through whole angle for output and close file
-fprintf(fileODout, 'theta I(theta) I_avg(theta)\n');
-for i_theta=1:I_numpoints
-    % Write theta [deg], I(r,theta) and I_avg(r,theta) [a.u.] to text file
-    % for given r +- tol as "i_theta, I_r, I_avg"
-    fprintf(fileODout, '%d %3d %3d\n', i_theta, I_r(i_theta), I_avg(i_theta));
+fprintf(fileODout, 'phi I(phi) I_avg(phi)\n');
+for i_phi=1:I_numpoints
+    % Write phi [deg], I(r,phi) and I_avg(r,phi) [a.u.] to text file
+    % for given r +- tol as "i_phi, I_r, I_avg"
+    fprintf(fileODout, '%d %3d %3d\n', i_phi, I_r(i_phi), I_avg(i_phi));
 end
 fclose(fileODout);
 
@@ -265,8 +265,8 @@ fclose(fileODout);
 % --- Executes on "File->Save anisotropy outputs" click in menu.
 function menu_file_save_anisotropy_Callback(hObject, eventdata, handles)
 % Acquire vars
-global Film_Area vertices;
-sourceDistance = get(handles.edit_sourceDistance, 'String');
+global Film_Area vertices theta Xfit;
+sourceDistance = str2num(get(handles.edit_sourceDistance, 'String'));
 blurList = get(handles.popupmenu_blurType, 'String');
   blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
 blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
@@ -297,9 +297,9 @@ fileODout = fopen(outputODfilename, 'w');
 
 % Loop through all rows (reversed) for output and close file
 Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
-fprintf(fileODout, 'R y(related to Theta) I\n');
+fprintf(fileODout, 'R [cm], theta [deg], I [a.u.]\n');
 for y=1:Film_Area_Rows
-    fprintf(fileODout, '%d %3d %3d\n', sourceDistance, y, vertices(Film_Area_Rows-y+1, 2, rgb_i));
+    fprintf(fileODout, '%d, %2.2f, %3d\n', sourceDistance, theta(y), filtered_Film_Area(y, round(Xfit(y)), rgb_i));
 end
 fclose(fileODout);
 
@@ -625,11 +625,11 @@ guidata(hObject, handles);
 % --- Executes on angular slider movement.
 function slider_angle_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
-global Film_Area thetacrit;
-thetacrit = get(hObject, 'Value');
+global Film_Area phicrit;
+phicrit = get(hObject, 'Value');
 rgb ='Red'; % get(handles.text_rgb, 'String');
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
-set(handles.edit_angle, 'String', thetacrit);
+set(handles.edit_angle, 'String', phicrit);
 
 % Display R/G/B channel of selected area
 imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
@@ -643,10 +643,10 @@ guidata(hObject, handles);
 
 function edit_angle_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
-global thetacrit;
-thetacrit = str2num(get(hObject,'String'));
-if ( thetacrit >= 0 && thetacrit <= get(handles.slider_angle,'Max') )
-    set(handles.slider_angle,'Value', thetacrit);
+global phicrit;
+phicrit = str2num(get(hObject,'String'));
+if ( phicrit >= 0 && phicrit <= get(handles.slider_angle,'Max') )
+    set(handles.slider_angle,'Value', phicrit);
     guidata(hObject, handles);
 else
     set(handles.edit_angle,'String', get(handles.slider_angle,'Value'));
@@ -657,10 +657,11 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on button press in button_anisotropy.
+% --- Executes on "vertical anisotropy analysis" button press
 function button_anisotropy_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
-global Film_Area dpi vertices;
+global Film_Area dpi vertices theta Xfit;
+sourceDistance = str2num(get(handles.edit_sourceDistance, 'String'));
 %rgbList = get(handles.popupmenu_RGB, 'String');
 %  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
 blurList = get(handles.popupmenu_blurType, 'String');
@@ -690,7 +691,9 @@ end
 Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
 Film_Area_Cols = length(filtered_Film_Area(1, :, rgb_i));
 vertices = zeros(Film_Area_Rows, 2, 3); % y's by [x, value] by RGB
+theta = zeros(Film_Area_Rows, 1); Xfit = zeros(Film_Area_Rows, 1);
 for j=1:Film_Area_Rows
+    
     vertices(j, 2, rgb_i) = min(filtered_Film_Area(j, :, rgb_i)); % minimum "gaussed" value
     %vertices(j, 2, rgb_i) = min(Film_Area(j, :, rgb_i)); % minimum exact value (todo: determine which is applicable)
     for i=1:Film_Area_Cols
@@ -699,13 +702,40 @@ for j=1:Film_Area_Rows
         end
     end
 end
+
+% Determine slope "m" of x = m*y + x_0 for [y in 1:Film_Area_Rows]
+P = polyfit(1:Film_Area_Rows, vertices(:, 1, rgb_i)', 1); %polyfit(xvalues , yvalues, order);
+Xfit = P(1)*(1:Film_Area_Rows) + P(2);
+minimumY = 1;
+for j=2:Film_Area_Rows
+    
+    % Find minimum along linear fit line
+    if ( filtered_Film_Area(j, round(Xfit(j)), rgb_i) < filtered_Film_Area(minimumY, round(Xfit(minimumY)), rgb_i) )
+        minimumY = j;
+    end
+end
+for j=1:Film_Area_Rows
+    
+    % Assume negligable tilt, convert y to phi
+    smagnitude = (minimumY-j)*sec(atan(P(1)));
+    theta(j) = 90 - smagnitude*(2.54/(dpi*sourceDistance))*(180/pi);
+end
+
 % Plot selected area with markers on vertices
 imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
 hold on;
+circleDraw(hObject, handles);
 plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerSize', 2);
+plot(handles.axes_image, Xfit, 1:Film_Area_Rows, 'b-', 'MarkerSize', 2);
 hold off;
+
+% Plot (theta, intensity) along vertex slant
 figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
-plot(1:Film_Area_Rows, flip(vertices(:, 2, rgb_i)), '.', 'Markersize', 1);
+plot(flip(theta), flip(vertices(:, 2, rgb_i)), '.', 'Markersize', 1);
+title('Grayscale around around film along darkest rift');
+ylabel('Grayscale [a.u.]');
+xlabel('Polar angle around seed \theta [deg]');
+%xticklabels(theta);
 
 
 
@@ -774,7 +804,7 @@ guidata(hObject, handles);
 % Draw 3 circles: of selected radius, and +/- tolerance
 function circleDraw(hObject, handles)
 % Acquire global and GUI variables
-global vertex dpi Film_Area thetacrit;
+global vertex dpi Film_Area phicrit;
 r = str2double(get(handles.edit_radius, 'String'));
 rTol = str2double(get(handles.edit_tol, 'String'));
 r_px = r*dpi/25.4; r_pxTol = rTol*dpi/25.4; % get r +- rTol in px
@@ -794,20 +824,20 @@ rectangle('Position', [vertex(2,1)-0.5 vertex(1,1)-0.5 1 1], ...
           'Curvature', [1 1], 'Parent', handles.axes_image)
 
 % Find critical angle of bias
-% [I_peak, theta_c] = max(I_r);
+% [I_peak, phi_c] = max(I_r);
 % 
 % For each degree, get total value of radial distribution
-theta_c = 0; I_px = r*dpi/25.4;
+phi_c = 0; I_px = r*dpi/25.4;
 Ir_min = 0;
-for theta_deg=1:360
+for phi_deg=1:360
     % Radians
-    theta_i = theta_deg*pi/180;
+    phi_i = phi_deg*pi/180;
     
     % Loop through weighted angular analyses
     for i=1:I_px
-        if (floor(vertex(2,rgb_i)-i*sin(theta_i)) > 0 && floor(vertex(2,rgb_i)-i*sin(theta_i)) < length(Film_Area(:,1,1)))
-            if (floor(vertex(1,rgb_i)+i*cos(theta_i)) > 0 && floor(vertex(1,rgb_i)+i*cos(theta_i)) < length(Film_Area(1,:,1)))
-                Ir_weighted(i) = Film_Area(floor(vertex(2,rgb_i)-i*sin(theta_i)), floor(vertex(1,rgb_i)+i*cos(theta_i)), rgb_i);
+        if (floor(vertex(2,rgb_i)-i*sin(phi_i)) > 0 && floor(vertex(2,rgb_i)-i*sin(phi_i)) < length(Film_Area(:,1,1)))
+            if (floor(vertex(1,rgb_i)+i*cos(phi_i)) > 0 && floor(vertex(1,rgb_i)+i*cos(phi_i)) < length(Film_Area(1,:,1)))
+                Ir_weighted(i) = Film_Area(floor(vertex(2,rgb_i)-i*sin(phi_i)), floor(vertex(1,rgb_i)+i*cos(phi_i)), rgb_i);
             else
                 Ir_weighted(i) = 65536;
             end
@@ -823,15 +853,15 @@ for theta_deg=1:360
     end
     if ( sum(Ir_weighted) <= Ir_min )
         Ir_min = sum(Ir_weighted);
-        theta_c = theta_deg;
+        phi_c = phi_deg;
     end
 end
 
 % Draw line from vertex to radial edge if within Film_Area dimensions
-thetacrit = theta_c;
-set(handles.edit_angle, 'String', thetacrit);
-set(handles.slider_angle, 'Value', thetacrit);
-radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(theta_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(theta_c)]);
+phicrit = phi_c;
+set(handles.edit_angle, 'String', phicrit);
+set(handles.slider_angle, 'Value', phicrit);
+radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(phi_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(phi_c)]);
 try set(radialLine, 'Parent', handles.axes_image); end
 
 % Draw averaging circle
@@ -844,59 +874,59 @@ rectangle('Position', [vertex(2,1)-avgRadius vertex(1,1)-avgRadius 2*avgRadius 2
 
 function plot_OD(hObject, handles)
 % Acquire vars
-global Film_Area vertex I_r I_avg dpi thetacrit;
+global Film_Area vertex I_r I_avg dpi phicrit;
 r = str2double(get(handles.edit_radius, 'String'));
 rTol = str2double(get(handles.edit_tol, 'String'));
 %rgbList = get(handles.popupmenu_RGB, 'String');
 %  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
 rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
-dtheta = 1;
+dphi = 1;
 
 % Angular range: circle for source...
-theta=1:dtheta:360;
+phi=1:dphi:360;
 
 % Create data point for each angle
-I_numpoints = max(theta) - min(theta) + 1; % angular iterations
+I_numpoints = max(phi) - min(phi) + 1; % angular iterations
 I_avg = zeros(I_numpoints, 1); I_r = zeros(I_numpoints, 1);
 
 % 0.01 mm increments from r +/- rTol
 rInc = 1e-2; rSteps = 2*rTol/rInc;
 
 % Loop through whole angle;
-for i_theta=1:I_numpoints
+for i_phi=1:I_numpoints
     % Get angle in radians
-    theta_rad = theta(i_theta)*pi/180;
+    phi_rad = phi(i_phi)*pi/180;
     for rStep_i = 0:rSteps
         % Get r_i in px
         r_pxi = (r - rTol + rStep_i*rInc)*dpi/25.4;
 
         % Find closest pixel, assume value
-        if (floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad)) <= length(Film_Area(1,:,1))) ...
-            && (floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad)) <= length(Film_Area(:,1,1)))
-                I_y = floor(vertex(1, rgb_i) - r_pxi*sin(theta_rad));
-                I_x = floor(vertex(2, rgb_i) + r_pxi*cos(theta_rad));
-                I_avg(i_theta) = double(I_avg(i_theta) + Film_Area(I_y, I_x, rgb_i)/(rSteps+1));
+        if (floor(vertex(2, rgb_i) + r_pxi*cos(phi_rad)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(phi_rad)) <= length(Film_Area(1,:,1))) ...
+            && (floor(vertex(1, rgb_i) - r_pxi*sin(phi_rad)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(phi_rad)) <= length(Film_Area(:,1,1)))
+                I_y = floor(vertex(1, rgb_i) - r_pxi*sin(phi_rad));
+                I_x = floor(vertex(2, rgb_i) + r_pxi*cos(phi_rad));
+                I_avg(i_phi) = double(I_avg(i_phi) + Film_Area(I_y, I_x, rgb_i)/(rSteps+1));
         else
-            I_avg(i_theta) = 0;
+            I_avg(i_phi) = 0;
         end
     end
     r_px = r*dpi/25.4; % get r in px
-    if (floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(theta_rad)) <= length(Film_Area(1,:,1))) ...
-        && (floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(theta_rad)) <= length(Film_Area(:,1,1)))
-            I_y = floor(vertex(1, rgb_i) - r_px*sin(theta_rad));
-            I_x = floor(vertex(2, rgb_i) + r_px*cos(theta_rad));
-            I_r(i_theta) = Film_Area(I_y, I_x, rgb_i);
+    if (floor(vertex(2, rgb_i) + r_px*cos(phi_rad)) >= 1 && floor(vertex(2, rgb_i) + r_px*cos(phi_rad)) <= length(Film_Area(1,:,1))) ...
+        && (floor(vertex(1, rgb_i) - r_px*sin(phi_rad)) >= 1 && floor(vertex(1, rgb_i) - r_px*sin(phi_rad)) <= length(Film_Area(:,1,1)))
+            I_y = floor(vertex(1, rgb_i) - r_px*sin(phi_rad));
+            I_x = floor(vertex(2, rgb_i) + r_px*cos(phi_rad));
+            I_r(i_phi) = Film_Area(I_y, I_x, rgb_i);
     else
-        I_r(i_theta) = 0;
+        I_r(i_phi) = 0;
     end
 end
-% Plot I(theta) for r=radius (blue) and r=radius +/- tolerance (red)
-plot(min(theta):max(theta), I_r, 'b-', 'Parent', handles.axes_angularOD);
+% Plot I(phi) for r=radius (blue) and r=radius +/- tolerance (red)
+plot(min(phi):max(phi), I_r, 'b-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'on');
-plot(min(theta):max(theta), I_avg, 'r-', 'Parent', handles.axes_angularOD);
+plot(min(phi):max(phi), I_avg, 'r-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'off');
-axis(handles.axes_angularOD, [min(theta) max(theta) min(min(I_r(:), I_avg(:))) max(max(I_r(:), I_avg(:)))]);
+axis(handles.axes_angularOD, [min(phi) max(phi) min(min(I_r(:), I_avg(:))) max(max(I_r(:), I_avg(:)))]);
 xlabel(handles.axes_angularOD, 'Angle [deg]')
 ylabel(handles.axes_angularOD, 'Grayscale [of 2^1^6]')
 
@@ -914,10 +944,10 @@ for i_r=1:I_rnumpoints
     r_pxi = i_r*dr*dpi/25.4;
             
     % Find closest pixel, assume value
-    if ( floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit)) <= length(Film_Area(1,:,1)) ) ...
-        && ( floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit)) <= length(Film_Area(:,1,1)) )
-            I_y = floor(vertex(1, rgb_i) - r_pxi*sin(thetacrit));
-            I_x = floor(vertex(2, rgb_i) + r_pxi*cos(thetacrit));
+    if ( floor(vertex(2, rgb_i) + r_pxi*cos(phicrit)) >= 1 && floor(vertex(2, rgb_i) + r_pxi*cos(phicrit)) <= length(Film_Area(1,:,1)) ) ...
+        && ( floor(vertex(1, rgb_i) - r_pxi*sin(phicrit)) >= 1 && floor(vertex(1, rgb_i) - r_pxi*sin(phicrit)) <= length(Film_Area(:,1,1)) )
+            I_y = floor(vertex(1, rgb_i) - r_pxi*sin(phicrit));
+            I_x = floor(vertex(2, rgb_i) + r_pxi*cos(phicrit));
             I_crit(i_r) = double(Film_Area(I_y, I_x, rgb_i));
     else
        I_crit(i_r) = 0;

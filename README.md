@@ -46,5 +46,4 @@ Priorities in order of appearance
 - [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2)
 
 ### Isotropy analysis
-- [Immovable slider and unchanging edit box for critical angle override](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/3)
 - [Save radial grayscale array with save outputs function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/6)

@@ -22,7 +22,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 04-Jul-2019 16:51:27
+% Last Modified by GUIDE v2.5 22-Jul-2019 11:51:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -91,6 +91,14 @@ end
 
 % --- Executes during object creation, after setting all properties.
 function edit_blurRadius_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_avgR_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -198,11 +206,14 @@ function menu_file_Callback(hObject, eventdata, handles)
 % --- Executes on "File->Open TIFF" click in menu.
 function menu_file_opentiff_Callback(hObject, eventdata, handles)
 % Acquire global variables
-global Film_Img Film_Area Film_Area_Prev Film_FileName rect;
+global Film_Img Film_Area Film_Area_Prev Film_FilePath Film_FileName rect;
+
+% If no return address, begin in code's directory
+if isequal(Film_FilePath, 0); Film_FilePath = "./"; end
 
 % Image Single-selection, set as cell array
 [Film_FileName, Film_FilePath, Img_Index] = uigetfile('*.tif', ...
-    'Choose image file', 'MultiSelect', 'off');
+    'Choose image file', 'MultiSelect', 'off', Film_FilePath);
 
 
 % If successful selection
@@ -248,7 +259,7 @@ I_numpoints = max(phi) - min(phi) + 1; % angular iterations including the zeroth
 
 % Get date and time for filename
 dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-outputODfilename = strcat('iso_', dateandtime, '.txt');
+outputODfilename = strcat('iso_', dateandtime, '.csv');
 fileODout = fopen(outputODfilename, 'w');
 
 % Loop through whole angle for output and close file
@@ -265,7 +276,7 @@ fclose(fileODout);
 % --- Executes on "File->Save anisotropy outputs" click in menu.
 function menu_file_save_anisotropy_Callback(hObject, eventdata, handles)
 % Acquire vars
-global Film_Area vertices theta Xfit;
+global Film_FileName Film_Area theta Xfit;
 sourceDistance = str2num(get(handles.edit_sourceDistance, 'String'));
 blurList = get(handles.popupmenu_blurType, 'String');
   blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
@@ -292,16 +303,25 @@ end
 
 % Get date and time for filename
 dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-outputODfilename = strcat('aniso_', dateandtime, '.txt');
-fileODout = fopen(outputODfilename, 'w');
+outputODfilename = strcat(Film_FileName, '_aniso_', dateandtime, '.csv');
 
-% Loop through all rows (reversed) for output and close file
-Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
-fprintf(fileODout, 'R [cm], theta [deg], I [a.u.]\n');
-for y=1:Film_Area_Rows
-    fprintf(fileODout, '%d, %2.2f, %3d\n', sourceDistance, theta(y), filtered_Film_Area(y, round(Xfit(y)), rgb_i));
+% Image Single-selection, set as cell array
+[outputODfilename, outputODfilepath] = uiputfile('*.csv', ...
+    'Save output file location', outputODfilename);
+
+% Write if non-empty save file name
+if ~isequal(outputODfilename, 0)
+    outputODfilename = strcat(outputODfilepath, outputODfilename);
+    fileODout = fopen(outputODfilename, 'w');
+
+    % Loop through all rows (reversed) for output and close file
+    Film_Area_Rows = length(filtered_Film_Area(:, 1, rgb_i));
+    fprintf(fileODout, 'R [cm], theta [deg], I [a.u.]\n');
+    for y=1:Film_Area_Rows
+        fprintf(fileODout, '%d, %2.2f, %3d\n', sourceDistance, theta(y), filtered_Film_Area(y, round(Xfit(y)), rgb_i));
+    end
+    fclose(fileODout);
 end
-fclose(fileODout);
 
 
 
@@ -321,6 +341,10 @@ function popupmenu_blurType_Callback(hObject, eventdata, handles)
 
 
 function edit_blurRadius_Callback(hObject, eventdata, handles)
+
+
+
+function edit_avgR_Callback(hObject, eventdata, handles)
 
 
 
@@ -638,8 +662,8 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on "vertical anisotropy analysis" button press
-function button_anisotropy_Callback(hObject, eventdata, handles)
+% --- Executes on "analyze vertices vertically" button press
+function button_anisotropy_vertical_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
 global Film_Area dpi vertices theta Xfit;
 sourceDistance = str2num(get(handles.edit_sourceDistance, 'String'));
@@ -705,16 +729,26 @@ end
 % Plot selected area with markers on vertices
 hold on;
 plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerSize', 2);
-plot(handles.axes_image, Xfit, 1:Film_Area_Rows, 'b-', 'MarkerSize', 2);
+plot(handles.axes_image, Xfit, 1:Film_Area_Rows, 'b-', 'MarkerSize', 3);
 hold off;
 
-% Plot (theta, intensity) along vertex slant
+for y=1:Film_Area_Rows
+    FilmAlongXFit(y) = filtered_Film_Area(y, round(Xfit(y)), rgb_i);
+end
+
+% Plot (theta, intensity) along vertices rift fit
 figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
-plot(flip(theta), flip(vertices(:, 2, rgb_i)), '.', 'Markersize', 1);
+plot(flip(theta), flip(FilmAlongXFit), '.', 'Markersize', 3);
 title('Grayscale around around film along darkest rift');
 ylabel('Grayscale [a.u.]');
 xlabel('Polar angle around seed \theta [deg]');
 %xticklabels(theta);
+
+
+
+% --- Executes on "analyze vertices horizontally" button press
+function button_anisotropy_horizontal_Callback(hObject, eventdata, handles)
+% TODO
 
 
 
@@ -730,13 +764,13 @@ global Film_Area dpi vertex;
 rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
 slider_r_max = get(handles.slider_radius, 'Max');
-r = str2double(get(handles.edit_radius,'String'));
-rTol = str2double(get(handles.edit_tol,'String'));
+r = str2double(get(handles.edit_radius, 'String'));
+rTol = str2double(get(handles.edit_tol, 'String'));
+avgRadius = str2double(get(handles.edit_avgR, 'String'));
 
 % Update vertex grayscale label with encompassing circular avg of available cells
 vertex(3, rgb_i) = Film_Area(vertex(1, rgb_i), vertex(2, rgb_i), rgb_i);
 %kernelRadius = str2double(get(handles.edit_blurRadius, 'String'));
-avgRadius = 5;
 avgArea = 0; avgAreaValue = 0;
 Film_Area_Rows = length(Film_Area(:, 1,rgb_i));
 Film_Area_Cols = length(Film_Area(1, :,rgb_i));
@@ -752,6 +786,10 @@ for j = 1:Film_Area_Rows
 end
 avgValue = avgAreaValue/avgArea;
 set(handles.text_vertexValue, 'String', avgValue);
+
+% Update ROI grayscale label with average of available cells
+avgROIValue = mean(mean(Film_Area(:, :, rgb_i)));
+set(handles.text_ROIValue, 'String', avgROIValue);
 
 % Check for radius numeric input
 if ( isnan(r) )

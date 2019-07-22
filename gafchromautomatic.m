@@ -498,9 +498,10 @@ set(handles.slider_angle, 'Min', 1);
 set(handles.slider_angle, 'Max', 360);
 set(handles.slider_angle, 'value', 1);
 
+findCritPhi(hObject, handles);
+
 % Display Red channel of selected area
 imshow(Film_Area(:,:,1), 'Parent', handles.axes_image);
-hold on; circleDraw(hObject, handles); hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -520,10 +521,6 @@ if ( sliderX <= Film_xMax && sliderX >= 0 ); vertex(2, rgb_i) = sliderX; end
 set(handles.edit_vertexX,'String', vertex(2, rgb_i));
 
 % Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -549,10 +546,6 @@ if ( sliderY <= Film_yMax && sliderY >= 0 ); vertex(1, rgb_i) = Film_yMax - slid
 set(handles.edit_vertexY, 'String', Film_yMax - sliderY);
 
 % Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -574,10 +567,6 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 set(handles.edit_radius,'String', slider_r);
 
 % Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -607,10 +596,6 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 set(handles.edit_tol, 'String', slider_rTol);
 
 % Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -632,10 +617,6 @@ if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else 
 set(handles.edit_angle, 'String', phicrit);
 
 % Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
 recalculate_window(hObject, handles);
 guidata(hObject, handles);
 
@@ -722,9 +703,7 @@ for j=1:Film_Area_Rows
 end
 
 % Plot selected area with markers on vertices
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
 hold on;
-circleDraw(hObject, handles);
 plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerSize', 2);
 plot(handles.axes_image, Xfit, 1:Film_Area_Rows, 'b-', 'MarkerSize', 2);
 hold off;
@@ -789,11 +768,8 @@ if ( r < 0 ) set(handles.edit_radius,'String',0);
 elseif ( r > slider_r_max ) set(handles.edit_radius,'String',slider_r_max);
 end
 
-% Display R/G/B channel of selected area
-imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
-hold on;
-circleDraw(hObject, handles);
-hold off;
+% Draw resulting circles and crit angle line
+hold on; circleDraw(hObject, handles); hold off;
 
 % Construct Optical Density plot
 plot_OD(hObject, handles);
@@ -801,31 +777,17 @@ guidata(hObject, handles);
 
 
 
-% Draw 3 circles: of selected radius, and +/- tolerance
-function circleDraw(hObject, handles)
+% Find critical angle of bias
+% [I_peak, phi_c] = max(I_r);
+function findCritPhi(hObject, handles)
 % Acquire global and GUI variables
 global vertex dpi Film_Area phicrit;
-r = str2double(get(handles.edit_radius, 'String'));
-rTol = str2double(get(handles.edit_tol, 'String'));
-r_px = r*dpi/25.4; r_pxTol = rTol*dpi/25.4; % get r +- rTol in px
+r = str2double(get(handles.edit_radius,'String'));
 %rgbList = get(handles.popupmenu_RGB, 'String');
 %  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
 rgb = 'Red';
 if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
-
-% Create circles with... rectangle(), because MATLAB
-rectangle('Position', [vertex(2,1)-r_px vertex(1,1)-r_px 2*r_px 2*r_px], ...
-          'Curvature', [1 1], 'Parent', handles.axes_image)
-rectangle('Position', [vertex(2,1)-(r_px+r_pxTol) vertex(1,1)-(r_px+r_pxTol) 2*(r_px+r_pxTol) 2*(r_px+r_pxTol)], ...
-          'Curvature', [1 1], 'Parent', handles.axes_image)
-rectangle('Position', [vertex(2,1)-(r_px-r_pxTol) vertex(1,1)-(r_px-r_pxTol) 2*(r_px-r_pxTol) 2*(r_px-r_pxTol)], ...
-          'Curvature', [1 1], 'Parent', handles.axes_image)
-rectangle('Position', [vertex(2,1)-0.5 vertex(1,1)-0.5 1 1], ...
-          'Curvature', [1 1], 'Parent', handles.axes_image)
-
-% Find critical angle of bias
-% [I_peak, phi_c] = max(I_r);
-% 
+    
 % For each degree, get total value of radial distribution
 phi_c = 0; I_px = r*dpi/25.4;
 Ir_min = 0;
@@ -856,19 +818,49 @@ for phi_deg=1:360
         phi_c = phi_deg;
     end
 end
-
-% Draw line from vertex to radial edge if within Film_Area dimensions
 phicrit = phi_c;
-set(handles.edit_angle, 'String', phicrit);
-set(handles.slider_angle, 'Value', phicrit);
-radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(phi_c)], [vertex(1,rgb_i) vertex(1,rgb_i)-r_px*sin(phi_c)]);
-try set(radialLine, 'Parent', handles.axes_image); end
+
+
+
+% Draw 3 circles: of selected radius, and +/- tolerance
+function circleDraw(hObject, handles)
+% Acquire global and GUI variables
+global Film_Area vertex dpi phicrit;
+r = str2double(get(handles.edit_radius, 'String'));
+rTol = str2double(get(handles.edit_tol, 'String'));
+r_px = r*dpi/25.4; r_pxTol = rTol*dpi/25.4; % get r +- rTol in px
+%rgbList = get(handles.popupmenu_RGB, 'String');
+%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+rgb = 'Red';
+if ( strcmp(rgb,'Red') ) rgb_i=1; elseif ( strcmp(rgb, 'Green') ) rgb_i=2; else rgb_i=3; end
+
+% Display R/G/B channel of selected area
+imshow(Film_Area(:,:,rgb_i), 'Parent', handles.axes_image);
+hold on;
+
+% Create circles with... rectangle(), because MATLAB
+rectangle('Position', [vertex(2,1)-r_px vertex(1,1)-r_px 2*r_px 2*r_px], ...
+          'Curvature', [1 1], 'Parent', handles.axes_image)
+rectangle('Position', [vertex(2,1)-(r_px+r_pxTol) vertex(1,1)-(r_px+r_pxTol) 2*(r_px+r_pxTol) 2*(r_px+r_pxTol)], ...
+          'Curvature', [1 1], 'Parent', handles.axes_image)
+rectangle('Position', [vertex(2,1)-(r_px-r_pxTol) vertex(1,1)-(r_px-r_pxTol) 2*(r_px-r_pxTol) 2*(r_px-r_pxTol)], ...
+          'Curvature', [1 1], 'Parent', handles.axes_image)
+rectangle('Position', [vertex(2,1)-0.5 vertex(1,1)-0.5 1 1], ...
+          'Curvature', [1 1], 'Parent', handles.axes_image)
 
 % Draw averaging circle
 %kernelRadius = str2double(get(handles.edit_blurRadius, 'String'));
 avgRadius = 1;
 rectangle('Position', [vertex(2,1)-avgRadius vertex(1,1)-avgRadius 2*avgRadius 2*avgRadius], ...
           'Curvature', [1 1], 'EdgeColor', 'r', 'Parent', handles.axes_image);
+      
+% Draw line from vertex to radial edge if within Film_Area dimensions
+phicritrad = phicrit*pi/180; % Radians
+set(handles.edit_angle, 'String', phicrit);
+set(handles.slider_angle, 'Value', phicrit);
+radialLine = line([vertex(2,rgb_i) vertex(2,rgb_i) + r_px*cos(phicritrad)], [vertex(1, rgb_i) vertex(1, rgb_i)-r_px*sin(phicritrad)]);
+try set(radialLine, 'Parent', handles.axes_image); end
+hold off;
 
 
 
@@ -955,6 +947,6 @@ for i_r=1:I_rnumpoints
 end
 % Plot I_crit(arr) along r=radius (blue)
 plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
-axis(handles.axes_radialOD, [min(arr) max(arr) min(min(I_crit(:))) max(max(I_crit(:)))]);
+try axis(handles.axes_radialOD, [ min(arr) max(arr) min(I_crit(:)) max(I_crit(:)) ]); end
 xlabel(handles.axes_radialOD, 'Radius [mm]')
 ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')

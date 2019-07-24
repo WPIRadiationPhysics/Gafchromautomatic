@@ -375,20 +375,25 @@ if ~isempty(Film_FileName)
     % Drag rectangle across desired area within boundaries of figure
     if ~( rect==0 ) Film_Area_Prev = Film_Area; end % Unzoomed
     
-    % Continuously attempt region selection until "good" selection
-    try 
-        rect = getrect(handles.axes_image);
-        xmin = round(rect(1)); ymin = round(rect(2)); width = round(rect(3)); height = round(rect(4));
-   
-        % Can't be outside image boundaries
-        while ( ~( xmin>0 && ymin>0 && xmin+width<=length(Film_Area(1,:,1)) && ymin+height<=length(Film_Area(:,1,1)) ) )
-            rect = getrect;
-            xmin = round(rect(1)); ymin = round(rect(2)); width = round(rect(3)); height = round(rect(4));
-        end
-        % Replace image with zoom
-        Film_Area = Film_Area_Prev(ymin:ymin+height, xmin:xmin+width,:);
+    rect = getrect(handles.axes_image);
+    xmin = round(rect(1)); ymin = round(rect(2)); width = round(rect(3)); height = round(rect(4));
+        
+    % Fix rectangle to snap-to-border from outside
+    if ( xmin+width < 1 ); width = 1; end
+    if ( ymin+height < 1 ); height = 1; end
+    if ( xmin < 1 ); xmin = 1; end
+    if ( ymin < 1 ); ymin = 1; end
+    if ( xmin+width >= length(Film_Area(1,:,1)) ); width=length(Film_Area(1,:,1))-min(xmin, length(Film_Area(1,:,1))); end
+    if ( ymin+height >= length(Film_Area(:,1,1)) ); height=length(Film_Area(:,1,1))-min(ymin, length(Film_Area(:,1,1))); end
+    
+    % Replace image with zoom only if non-zero area after snaps
+    % Since min(xmin or ymin)=1, zero area may be if width or height is 1
+    if ~( width <= 1 || height <= 1 )
         cla(handles.axes_image, 'reset');
+        Film_Area = Film_Area_Prev(ymin:ymin+height, xmin:xmin+width,:);
         imshow(Film_Area, 'Parent', handles.axes_image);
+    else
+        rect = 0; % clear selection var for pre-analysis check
     end
 end
 guidata(hObject, handles);

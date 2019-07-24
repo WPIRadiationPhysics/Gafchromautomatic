@@ -259,17 +259,28 @@ I_numpoints = max(phi) - min(phi) + 1; % angular iterations including the zeroth
 
 % Get date and time for filename
 dateandtime = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-outputODfilename = strcat('iso_', dateandtime, '.csv');
-fileODout = fopen(outputODfilename, 'w');
+outputODfilename = strcat(Film_FileName, '_iso_', dateandtime, '.csv');
 
-% Loop through whole angle for output and close file
-fprintf(fileODout, 'phi I(phi) I_avg(phi)\n');
-for i_phi=1:I_numpoints
-    % Write phi [deg], I(r,phi) and I_avg(r,phi) [a.u.] to text file
-    % for given r +- tol as "i_phi, I_r, I_avg"
-    fprintf(fileODout, '%d %3d %3d\n', i_phi, I_r(i_phi), I_avg(i_phi));
-end
+% Image Single-selection, set as cell array
+[outputODfilename, outputODfilepath] = uiputfile('*.csv', ...
+    'Save output file location', outputODfilename);
+
+% Write if non-empty save file name
+if ~isequal(outputODfilename, 0)
+    outputODfilename = strcat(outputODfilepath, outputODfilename);
+    fileODout = fopen(outputODfilename, 'w');
+
+    % Loop through whole angle for output and close file
+    fprintf(fileODout, 'phi I(phi) I_avg(phi)\n');
+    for i_phi=1:I_numpoints
+        % Write phi [deg], I(r,phi) and I_avg(r,phi) [a.u.] to text file
+        % for given r +- tol as "i_phi, I_r, I_avg"
+        fprintf(fileODout, '%d %3d %3d\n', i_phi, I_r(i_phi), I_avg(i_phi));
+    end
 fclose(fileODout);
+end
+
+
 
 
 
@@ -399,6 +410,15 @@ if ~isempty(Film_FileName)
         imshow(Film_Img, 'Parent', handles.axes_image);
     end
 end
+
+% Update vertex and ROI grayscale label with zeros
+set(handles.text_vertexValue, 'String', 0);
+set(handles.text_ROIValue, 'String', 0);
+
+% Update radial and angular OD preview plots
+cla(handles.axes_angularOD, 'reset');
+cla(handles.axes_radialOD, 'reset');
+
 guidata(hObject, handles);
 
 

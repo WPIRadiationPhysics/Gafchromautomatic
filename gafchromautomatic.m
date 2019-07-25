@@ -22,7 +22,7 @@ function varargout = gafchromautomatic(varargin)
 
 % Edit the above text to modify the response to help gafchromautomatic
 
-% Last Modified by GUIDE v2.5 22-Jul-2019 11:51:51
+% Last Modified by GUIDE v2.5 25-Jul-2019 12:04:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -687,13 +687,18 @@ guidata(hObject, handles);
 
 
 
+% --- Executes on button press in check_shielding.
+function check_shielding_Callback(hObject, eventdata, handles)
+
+
+
 % --- Executes on "analyze vertices vertically" button press
 function button_anisotropy_vertical_Callback(hObject, eventdata, handles)
 % Acquire global and GUI variables
 global Film_Area dpi vertices theta Xfit;
+dpi = str2double(get(handles.edit_dpi, 'String'));
 sourceDistance = str2num(get(handles.edit_sourceDistance, 'String'));
-%rgbList = get(handles.popupmenu_RGB, 'String');
-%  rgb = rgbList{get(handles.popupmenu_RGB, 'Value')};
+shieldingCheck = get(handles.check_shielding, 'Value');
 blurList = get(handles.popupmenu_blurType, 'String');
   blurType = blurList{get(handles.popupmenu_blurType, 'Value')};
 blurRadius = str2double(get(handles.edit_blurRadius, 'String'));
@@ -744,12 +749,6 @@ for j=2:Film_Area_Rows
         minimumY = j;
     end
 end
-for j=1:Film_Area_Rows
-    
-    % Assume negligable tilt, convert y to phi
-    smagnitude = (minimumY-j)*sec(atan(P(1)));
-    theta(j) = 90 - smagnitude*(2.54/(dpi*sourceDistance))*(180/pi);
-end
 
 % Plot selected area with markers on vertices
 hold on;
@@ -757,17 +756,43 @@ plot(handles.axes_image, vertices(:, 1, rgb_i), 1:Film_Area_Rows, 'r+', 'MarkerS
 plot(handles.axes_image, Xfit, 1:Film_Area_Rows, 'b-', 'MarkerSize', 3);
 hold off;
 
+% Get s-values along arc length
 for y=1:Film_Area_Rows
     FilmAlongXFit(y) = filtered_Film_Area(y, round(Xfit(y)), rgb_i);
 end
 
+% If "shielding" checkbox checked, use relative angle from min to min
+if ( shieldingCheck == 1 )
+
+    % Get logical array of local minima along Xfit
+    TF = islocalmin(FilmAlongXFit);
+    firstMinIndex = find(TF, 1, 'first');
+end
+
+% Define theta or Delta theta array
+for j=1:Film_Area_Rows
+    
+    % Assume negligable tilt, convert y to phi
+    smagnitude = (minimumY-j)*sec(atan(P(1))); % px
+    theta(j) = 90 - smagnitude*(2.54/(dpi*sourceDistance))*(180/pi);
+    
+    % Use relative angle from first minimum value along arc length
+    if ( shieldingCheck == 1 )
+        
+        smagnitude = (j-firstMinIndex)*sec(atan(P(1))); % px
+        theta(j) = smagnitude*(2.54/(dpi*sourceDistance))*(180/pi);
+    end
+end
+
 % Plot (theta, intensity) along vertices rift fit
-figure; % flip rows to correctly plot matrix (y points down) on graph (y points up)
+figure('name','Vertical anisotropy analysis'); % flip rows to correctly plot matrix (y points down) on graph (y points up)
 plot(flip(theta), flip(FilmAlongXFit), '.', 'Markersize', 3);
-title('Grayscale around around film along darkest rift');
-ylabel('Grayscale [a.u.]');
+title('Grayscale around film along darkest rift');
+ylabel('Grayscale [of 65536]');
 xlabel('Polar angle around seed \theta [deg]');
-%xticklabels(theta);
+if ( shieldingCheck == 1 )
+    xlabel('Relative polar angle around seed \Delta\theta [deg]');
+end
 
 
 
@@ -983,7 +1008,7 @@ plot(min(phi):max(phi), I_avg, 'r-', 'Parent', handles.axes_angularOD);
 hold(handles.axes_angularOD, 'off');
 axis(handles.axes_angularOD, [min(phi) max(phi) min(min(I_r(:), I_avg(:))) max(max(I_r(:), I_avg(:)))]);
 xlabel(handles.axes_angularOD, 'Angle [deg]')
-ylabel(handles.axes_angularOD, 'Grayscale [of 2^1^6]')
+ylabel(handles.axes_angularOD, 'Grayscale [of 65536]')
 
 % Radial range: zero to radius
 I_rnumpoints = 200;
@@ -1012,4 +1037,4 @@ end
 plot(arr(1:end-1), I_crit, 'b-', 'Parent', handles.axes_radialOD);
 try axis(handles.axes_radialOD, [ min(arr) max(arr) min(I_crit(:)) max(I_crit(:)) ]); end
 xlabel(handles.axes_radialOD, 'Radius [mm]')
-ylabel(handles.axes_radialOD, 'Grayscale [of 2^1^6]')
+ylabel(handles.axes_radialOD, 'Grayscale [of 65536]')

@@ -37,11 +37,9 @@ OR
     2. Save vertical vertices data to file with *File->Save anisotropy outputs*.
 
 ## Issues
-Priorities in order of appearance
+Priorities in order of appearance per category
 
 ### General
-- [Snap zoom rectangle to image boundaries when outside](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/8)
-- [Create file save dialog box function](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/5)
 - [Support one-channel TIFF image input](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/1)
 - [Import multiple scans for initial averaging](https://github.com/WPIRadiationPhysics/Gafchromautomatic/issues/2)
 
